@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('ingredients', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
+            $table->string('normalised')->unique();
             $table->string('substitute_group')->nullable()->index();
             $table->string('ingredient_type');
             $table->string('measurement_type');

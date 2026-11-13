@@ -15,6 +15,7 @@ return new class extends Migration
         Schema::create('alcohols', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
+            $table->string('normalised')->unique();
             $table->foreignIdFor(AlcoholType::class)->constrained()->restrictOnDelete();
             $table->timestamps();
         });
