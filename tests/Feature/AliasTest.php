@@ -2,9 +2,9 @@
 
 use App\Enums\AliasSource;
 use App\Intake\NameNormaliser;
-use App\Models\Alcohol;
 use App\Models\Alias;
 use App\Models\Ingredient;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 it('resolves many names to one ingredient', function () {
@@ -15,7 +15,7 @@ it('resolves many names to one ingredient', function () {
 
     $ids = Alias::query()
         ->whereIn('normalised', ['red vermouth', 'rosso', 'vermouth rosso'])
-        ->pluck('aliasable_id')
+        ->pluck('ingredient_id')
         ->unique();
 
     expect($ids)->toHaveCount(1)
@@ -29,7 +29,7 @@ it('resolves rosso to sweet vermouth, which scoring never could', function () {
     $resolved = Alias::query()
         ->where('normalised', NameNormaliser::normalise('ROSSO'))
         ->sole()
-        ->aliasable;
+        ->ingredient;
 
     expect($resolved)->toBeInstanceOf(Ingredient::class)
         ->and($resolved->name)->toBe('Sweet Vermouth');
@@ -51,15 +51,6 @@ it('refuses an alias key that already points somewhere', function () {
         ->toThrow(UniqueConstraintViolationException::class);
 });
 
-it('aliases an alcohol as well as an ingredient', function () {
-    $rittenhouse = makeAlcohol('Rittenhouse');
-    aliasFor($rittenhouse, 'Rittenhouse Rye');
-
-    expect($rittenhouse->aliases)->toHaveCount(1)
-        ->and(Alias::query()->where('normalised', 'rittenhouse rye')->sole()->aliasable)
-        ->toBeInstanceOf(Alcohol::class);
-});
-
 it('reaches every alias from the ingredient', function () {
     $vermouth = makeIngredient('Sweet Vermouth');
     aliasFor($vermouth, 'Red Vermouth');
@@ -70,8 +61,26 @@ it('reaches every alias from the ingredient', function () {
 });
 
 it('records where an alias came from', function () {
-    $vermouth = makeIngredient('Sweet Vermouth');
-    aliasFor($vermouth, 'Rosso', AliasSource::User);
+    aliasFor(makeIngredient('Sweet Vermouth'), 'Rosso', AliasSource::User);
 
     expect(Alias::query()->sole()->source)->toBe(AliasSource::User);
+});
+
+it('deletes aliases with the ingredient they name', function () {
+    $vermouth = makeIngredient('Sweet Vermouth');
+    aliasFor($vermouth, 'Rosso');
+    aliasFor($vermouth, 'Red Vermouth');
+
+    $vermouth->delete();
+
+    expect(Alias::query()->count())->toBe(0);
+});
+
+it('refuses an alias for an ingredient that does not exist', function () {
+    $orphan = new Alias;
+    $orphan->ingredient_id = 99999;
+    $orphan->alias = 'Ghost';
+    $orphan->source = AliasSource::User;
+
+    expect(fn () => $orphan->save())->toThrow(QueryException::class);
 });

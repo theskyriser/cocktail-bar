@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Ingredient;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('aliases', function (Blueprint $table) {
             $table->id();
-            $table->morphs('aliasable');
+            $table->foreignIdFor(Ingredient::class)->constrained()->cascadeOnDelete();
             $table->string('alias');
             $table->string('normalised')->unique();
             $table->string('source');

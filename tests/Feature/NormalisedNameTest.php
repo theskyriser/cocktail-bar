@@ -6,8 +6,8 @@ it('stores a lookup key when an ingredient is saved', function () {
     expect(makeIngredient("Gordon's Gin")->fresh()->normalised)->toBe('gordons gin');
 });
 
-it('stores a lookup key when an alcohol is saved', function () {
-    expect(makeAlcohol('Crème de Cassis')->fresh()->normalised)->toBe('creme de cassis');
+it('folds accents into the lookup key', function () {
+    expect(makeIngredient('Crème de Cassis')->fresh()->normalised)->toBe('creme de cassis');
 });
 
 it('keeps the name as typed', function () {
@@ -21,10 +21,10 @@ it('rejects two ingredients whose names differ only by punctuation', function ()
         ->toThrow(UniqueConstraintViolationException::class);
 });
 
-it('rejects two alcohols whose names differ only by case', function () {
-    makeAlcohol('Rittenhouse');
+it('rejects two ingredients whose names differ only by case', function () {
+    makeIngredient('Rittenhouse');
 
-    expect(fn () => makeAlcohol('RITTENHOUSE'))
+    expect(fn () => makeIngredient('RITTENHOUSE'))
         ->toThrow(UniqueConstraintViolationException::class);
 });
 

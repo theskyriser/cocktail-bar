@@ -6,7 +6,7 @@ use App\Enums\AliasSource;
 use App\Intake\NameNormaliser;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Alias extends Model
 {
@@ -21,11 +21,11 @@ class Alias extends Model
     }
 
     /**
-     * @return MorphTo<Model, $this>
+     * @return BelongsTo<Ingredient, $this>
      */
-    public function aliasable(): MorphTo
+    public function ingredient(): BelongsTo
     {
-        return $this->morphTo();
+        return $this->belongsTo(Ingredient::class);
     }
 
     /**

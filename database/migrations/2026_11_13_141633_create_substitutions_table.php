@@ -13,15 +13,12 @@ return new class extends Migration
     {
         Schema::create('substitutions', function (Blueprint $table) {
             $table->id();
-            $table->morphs('original');
-            $table->morphs('substitution');
+            $table->foreignId('original_id')->constrained('ingredients')->cascadeOnDelete();
+            $table->foreignId('substitution_id')->constrained('ingredients')->cascadeOnDelete();
             $table->string('quality');
             $table->timestamps();
 
-            $table->unique(
-                ['original_type', 'original_id', 'substitution_type', 'substitution_id'],
-                'substitutions_pair_unique'
-            );
+            $table->unique(['original_id', 'substitution_id']);
         });
     }
 

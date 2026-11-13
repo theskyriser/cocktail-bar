@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\SubRule;
+use App\Models\Ingredient;
 use App\Models\Recipe;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -15,15 +16,15 @@ return new class extends Migration
     {
         Schema::create('ingredient_recipes', function (Blueprint $table) {
             $table->id();
-            $table->morphs('item');
             $table->foreignIdFor(Recipe::class)->constrained()->cascadeOnDelete();
+            $table->foreignIdFor(Ingredient::class)->constrained()->cascadeOnDelete();
             $table->unsignedInteger('amount');
             $table->string('measurement_type');
             $table->string('role');
             $table->string('sub_rule')->default(SubRule::Exact->value);
             $table->timestamps();
 
-            $table->unique(['recipe_id', 'item_type', 'item_id']);
+            $table->unique(['recipe_id', 'ingredient_id']);
         });
     }
 
