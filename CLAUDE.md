@@ -36,8 +36,13 @@ recoverable and CI eventually has something to check.
    framework-level rules: artisan usage, Pint, Pest, Inertia v3 specifics,
    Wayfinder. **Do not hand-edit it** — `php artisan boost:install` rewrites the
    file and your edits vanish.
-2. **This file** — the domain, the layout, and how work is done here.
-3. **`.claude/skills/`** — the skill set. See § *Skills* for which ones apply to
+2. **`docs/design/cocktail-calculator/README.md`** — the design handoff: the
+   product shape, the data model, the matching rules and the wireframe options.
+   It is the authority on *what the product does*; open
+   `Cocktail App Wireframes.dc.html` in a browser (it needs `support.js` and
+   `_ds/` beside it) to see the screens.
+3. **This file** — the domain, the layout, and how work is done here.
+4. **`.claude/skills/`** — the skill set. See § *Skills* for which ones apply to
    this stack and which do not.
 
 On a conflict: `AGENTS.md` wins on framework mechanics, this file wins on domain
@@ -129,6 +134,39 @@ None of this exists yet, so these are the decisions to make deliberately on the
 first feature rather than drift into. Where a choice is open I have given a
 recommendation and the reason; disagree with it in a commit message, not by
 silently doing something else.
+
+### The design handoff decides the product; read it first
+
+`docs/design/cocktail-calculator/README.md` specifies the data model and the
+matching rules, and it goes further than the sketch below in ways that change the
+schema — so take its shape, not a guess:
+
+- **Stock carries amounts, not presence.** `amountOnHand` + `bottleSize` per
+  ingredient, with `unit` as `ml | count | dash`. That makes **servings
+  possible** (`min` over items of `floor(amountOnHand / quantity)`) and the
+  **limiting ingredient** first-class, and it means "I made one" **deducts** from
+  inventory. A boolean have/have-not schema cannot express any of that.
+- **Substitution is a `substituteGroup` on the ingredient** plus a per-recipe-line
+  `subRule` of `exact | any-in-group | optional` — not a pairwise substitution
+  table. Same intent as below (explicit data, never inferred), different shape.
+- **Shopping is ranked by unlocks**: for each missing ingredient, how many
+  recipes would become ready if it were added.
+- **Running low** is derived (supports ≤ 2–3 servings, or below a % of the
+  bottle), so it is a query, not a stored flag.
+- **Display units are ml ⇄ oz**, and the design deliberately rounds 1 oz to
+  30 ml (22 ml for ¾ oz). Keep the canonical ml storage recommended below and do
+  the rounding at the display edge only.
+- Fresh fruit maps to a juice volume (≈ 25 ml per lime, configurable).
+
+Two things the handoff leaves open, so do not invent an answer: **no visual
+direction has been chosen** (every screen has three options, `1a`–`1x`), and the
+`styles.css` it ships is the *Classical* design system — Cormorant Garamond /
+Lora, `#b68235` accent, outlined buttons only — which is not what shadcn
+installed here (new-york, neutral). Retheming is a real task, not a detail.
+
+Also note the handoff's own advice to "pick a suitable stack (React Native or
+Expo)" was written for a greenfield project. This codebase exists, so that line
+does not apply — build the screens as Inertia pages in React.
 
 ### Ingredients are entities, not strings
 
