@@ -60,7 +60,7 @@ quietly following the skill.
 | Routing types | Laravel Wayfinder — generated into `resources/js/actions/`, `resources/js/routes/`, `resources/js/wayfinder/` |
 | UI | Tailwind 4, Radix primitives via shadcn (`components.json`, new-york, neutral), `lucide-react` icons, `sonner` toasts, `class-variance-authority` + `tailwind-merge` |
 | Build | `vite-plus` (`vp`), `@inertiajs/vite`, React Compiler babel plugin |
-| Database | **SQLite** by default; session, cache and queue drivers are all `database` |
+| Database | **PostgreSQL 18** in Docker via Sail (`compose.yaml` runs `pgsql` + `redis`); session, cache and queue drivers are all `database`. **The Pest suite runs on SQLite `:memory:`** (`phpunit.xml`) and must stay there — CI declares no database service |
 | Static analysis | Larastan/PHPStan **level 7** over `app/ bootstrap/app.php config/ database/ routes/` |
 | Style | Laravel Pint (`pint.json`), `vp check` for JS/TS |
 | Tests | Pest (`tests/Feature`, `tests/Unit`) |
@@ -80,6 +80,18 @@ composer lint           # pint --parallel (writes)
 npm run check           # vp check (JS/TS lint)
 npm run types:check     # tsc --noEmit
 ```
+
+The database runs in Docker, so bring it up before anything that touches it:
+
+```bash
+./vendor/bin/sail up -d       # app + Postgres + Redis
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail down
+```
+
+`DB_HOST=pgsql` resolves only **inside** the containers. Host-native `php artisan`
+commands that reach the database need `DB_HOST=127.0.0.1` against the forwarded
+port; the Pest suite is unaffected, because it uses SQLite `:memory:`.
 
 Scope test runs while iterating, and use the whole gate before calling something
 done:
@@ -243,7 +255,7 @@ for a Next.js App Router SPA with its own client data layer.
 | `no-workarounds` | **Yes, always.** Load it for any debugging or test-failure work. |
 | `testing-anti-patterns` | **Yes**, whenever tests are in scope. |
 | `clean-code` · `security-review` | **Yes** — `security-review` for anything touching auth, Fortify, policies or user input. |
-| `laravel-backend` | **Conventions yes, architecture with care.** Its Pint/PHPStan/migration/test rules all apply. But its Controller → UseCase → Repository layering, `app/Domains/` tree and Spatie Laravel-Data DTOs are a *heavier* architecture than this app has. Adopt it wholesale or not at all — a half-applied layering is worse than either. Note it assumes **PHPStan level 8**; this project is at **level 7**. It also assumes Sail; this project does not use it, so run PHP on the host. |
+| `laravel-backend` | **Conventions yes, architecture with care.** Its Pint/PHPStan/migration/test rules all apply. But its Controller → UseCase → Repository layering, `app/Domains/` tree and Spatie Laravel-Data DTOs are a *heavier* architecture than this app has. Adopt it wholesale or not at all — a half-applied layering is worse than either. Note it assumes **PHPStan level 8**; this project is at **level 7**. It also assumes Sail; this project now uses Sail for Postgres and Redis (`compose.yaml`), so that guidance applies — but the host toolchain (PHP 8.3, Node 22) is installed as well, and the Pest suite runs on the host against SQLite. |
 | `react-frontend` | **`SKILL.md` and `rules/coding-standards.md` yes** — shared components before new ones, no hardcoded colours, no raw `<svg>`, thin components, one mutation per hook, tests mirroring the component tree. |
 | `react-frontend` → `layered-architecture.md`, `app-structure.md`, `infinite-scrolling.md`, `websocket.md` | **No — these describe a different architecture.** They assume Next.js App Router routes, `context.<domain>/` modules, TanStack Query, a `fetchApi` provider registry and Laravel Echo. This app has Inertia pages with server-supplied props and none of that machinery. Read them for the *reasoning* if you like; do not implement them here. |
 | `vercel-react-best-practices` | **Partly.** The `rerender-*`, `js-*` and `bundle-*` rules are plain React and apply. The `server-*` and `async-*` rules are React Server Components and Next data fetching — not this stack. |
@@ -288,8 +300,8 @@ ranking decision in the interpreter.
   work on branches and let the existing CI workflow run on the PR.
 - **Schema changes are always a migration** (`php artisan make:migration`), never
   a hand-edited database. Do not run `migrate`, `migrate:fresh` or a seeder
-  without saying what it will do first — `migrate:fresh` on the local SQLite file
-  destroys whatever stock and recipes you had been testing with.
+  without saying what it will do first — `migrate:fresh` against the Sail Postgres
+  volume destroys whatever stock and recipes you had been testing with.
 - **Scope test runs** while iterating (`--filter`), and run `composer ci:check`
   before reporting work complete. If you did not run it, say so.
 - **Small diffs.** No drive-by refactors, no renaming identifiers, no behaviour
