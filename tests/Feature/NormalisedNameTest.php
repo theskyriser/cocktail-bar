@@ -1,38 +1,6 @@
 <?php
 
-use App\Enums\AlcoholParentType;
-use App\Enums\IngredientType;
-use App\Enums\MeasurementType;
-use App\Models\Alcohol;
-use App\Models\AlcoholType;
-use App\Models\Ingredient;
 use Illuminate\Database\UniqueConstraintViolationException;
-
-function makeIngredient(string $name): Ingredient
-{
-    $ingredient = new Ingredient;
-    $ingredient->name = $name;
-    $ingredient->ingredient_type = IngredientType::Spirit;
-    $ingredient->measurement_type = MeasurementType::Millilitres;
-    $ingredient->save();
-
-    return $ingredient;
-}
-
-function makeAlcohol(string $name): Alcohol
-{
-    $type = new AlcoholType;
-    $type->name = $name.' type';
-    $type->parent_type = AlcoholParentType::Gin;
-    $type->save();
-
-    $alcohol = new Alcohol;
-    $alcohol->name = $name;
-    $alcohol->alcohol_type_id = $type->id;
-    $alcohol->save();
-
-    return $alcohol;
-}
 
 it('stores a lookup key when an ingredient is saved', function () {
     expect(makeIngredient("Gordon's Gin")->fresh()->normalised)->toBe('gordons gin');

@@ -1,5 +1,14 @@
 <?php
 
+use App\Enums\AlcoholParentType;
+use App\Enums\AliasSource;
+use App\Enums\IngredientType;
+use App\Enums\MeasurementType;
+use App\Models\Alcohol;
+use App\Models\AlcoholType;
+use App\Models\Alias;
+use App\Models\Ingredient;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +56,42 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+function makeIngredient(string $name): Ingredient
+{
+    $ingredient = new Ingredient;
+    $ingredient->name = $name;
+    $ingredient->ingredient_type = IngredientType::Spirit;
+    $ingredient->measurement_type = MeasurementType::Millilitres;
+    $ingredient->save();
+
+    return $ingredient;
+}
+
+function makeAlcohol(string $name): Alcohol
+{
+    $type = new AlcoholType;
+    $type->name = $name.' type';
+    $type->parent_type = AlcoholParentType::Gin;
+    $type->save();
+
+    $alcohol = new Alcohol;
+    $alcohol->name = $name;
+    $alcohol->alcohol_type_id = $type->id;
+    $alcohol->save();
+
+    return $alcohol;
+}
+
+function aliasFor(Model $owner, string $alias, AliasSource $source = AliasSource::Seed): Alias
+{
+    $row = new Alias;
+    $row->aliasable_type = $owner::class;
+    $row->aliasable_id = $owner->id;
+    $row->alias = $alias;
+    $row->source = $source;
+    $row->save();
+
+    return $row;
 }
