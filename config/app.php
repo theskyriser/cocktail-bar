@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Front End URL
+    |--------------------------------------------------------------------------
+    |
+    | The origin the cocktail-bar-web SPA is served from. Password reset and
+    | email verification links in outgoing mail point here rather than at this
+    | API, and it is the single allowed CORS origin.
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5173'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

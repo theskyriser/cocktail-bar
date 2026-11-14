@@ -73,7 +73,22 @@ return [
     |
     */
 
-    'home' => '/dashboard',
+    'home' => env('FRONTEND_URL', 'http://localhost:5173'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fortify Redirects
+    |--------------------------------------------------------------------------
+    |
+    | Fortify answers the SPA's XHR requests with JSON, but a verification link
+    | is opened directly by the user's mail client, so that one flow really does
+    | redirect. It has to land back in the SPA rather than on this API.
+    |
+    */
+
+    'redirects' => [
+        'email-verification' => env('FRONTEND_URL', 'http://localhost:5173').'/dashboard',
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -129,7 +144,7 @@ return [
     |
     */
 
-    'views' => true,
+    'views' => false,
 
     /*
     |--------------------------------------------------------------------------
