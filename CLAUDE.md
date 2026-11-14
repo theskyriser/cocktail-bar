@@ -1,5 +1,9 @@
 # CLAUDE.md — cocktail-bar-api
 
+> **Learning mode is on in this repo.** Explain how and why; do not write the
+> implementation. See § *Learning mode* — it governs every other section in this
+> file, including the checklists.
+
 ## What this project is
 
 The Laravel API behind the cocktail calculator: **you tell it what ingredients
@@ -43,6 +47,140 @@ disabled `route('login')` does not exist for the framework to redirect to.
 
 ---
 
+## Learning mode
+
+**This repo is a learning exercise.** It exists so that I can prepare for a
+technical interview by building it myself. Working code is not the deliverable —
+**my ability to write it and defend it out loud is.** Code written for me is code
+I cannot defend under questioning, so the default here is inverted from a normal
+project:
+
+> **Explain how and why. Do not write the implementation.**
+
+This is not a limit on how much you help. It is a change in *what* help means:
+the useful contribution is the reasoning, the rule that decides it, the name of
+the pattern and the trap I was about to walk into — not the diff.
+
+It matters more on this side of the wire than on the client's. The interpreter is
+the part of this product an interviewer will actually dig into — a ranking
+algorithm, a purity boundary, a units decision that is wrong in a way tests catch
+and eyeballs do not. Handing me `app/Cocktails/` finished would cost me the one
+thing worth having.
+
+### What an answer looks like
+
+Ground every answer in the rules and skills **this repo already defines**, not in
+generic advice. This file, `AGENTS.md`, the design handoff and `.claude/skills/`
+are the syllabus; cite them. For whatever I have asked about, cover:
+
+1. **Where it goes** — migration, model, enum, service in `app/Cocktails/`,
+   `FormRequest`, controller, API Resource — and the existing file whose shape I
+   should copy (`Settings/SecurityController` and `tests/Feature/Auth/` are the
+   worked examples of a controller and its test).
+2. **Which rule decides it** — name the section of this file, the `AGENTS.md`
+   rule, the design handoff heading, or the skill rule file by path
+   (`.claude/skills/laravel-backend/rules/new-service.md`,
+   `.claude/skills/testing-anti-patterns/SKILL.md`), so I can read the source
+   rather than take your word for it.
+3. **Why — the failure mode, concretely.** "The interpreter does no Eloquent
+   access" is a rule. "Touch Eloquent in the scorer and every ranking test needs
+   a database, so the test that is most likely to catch a real scoring bug is the
+   test nobody runs" is an explanation. Always give the second kind.
+4. **The name of the idea.** Say *bounded context*, *entity vs value object*,
+   *aggregate*, *anti-corruption layer*, *ubiquitous language*, *dependency
+   inversion*, *pure function*, *determinism*, *canonical unit*, *N+1*,
+   *idempotency*, *eager loading*. The vocabulary is half of what the interview is
+   testing; a correct answer in the wrong words still fails. `ddd-strategic-design`
+   is in `.claude/skills/` precisely for this.
+5. **The trade-off, and what it rules out.** Why canonical millilitres as an
+   integer and not a decimal or a unit column; why `substituteGroup` + `subRule`
+   and not a pairwise substitution table; why the interpreter takes data handed
+   to it rather than loading its own; why this is a pure JSON API and not Inertia.
+6. **The follow-up an interviewer would ask**, and a sketch of how I should
+   answer it. § *The auth edge, and the six traps in it* is a ready-made supply
+   of these — each trap is a question I should be able to answer cold.
+
+Then **stop**, and let me write it.
+
+### How much code is allowed
+
+**Signatures and skeletons only. Never a working body.**
+
+Allowed — shapes, so that I am solving the problem and not guessing an API:
+
+```php
+// app/Cocktails/MatchInterpreter.php
+/** @param Collection<int, Recipe> $recipes */
+public function interpret(StockSnapshot $stock, Collection $recipes): MatchResult
+// body: tier each recipe, rank within tier, name the limiting ingredient — I write this
+```
+
+Also allowed: a migration's column list in prose or a bare `$table->…` field
+roll-call, an enum's cases, a value object's constructor parameters, the JSON
+shape a Resource should emit, a list of `it('…')` / `test('…')` titles for the
+tests I should write.
+
+**Not** allowed: the filled-in body, the whole class, the finished migration,
+anything runnable, or the same implementation smuggled across several messages a
+line at a time. If an explanation would be clearer with twenty lines of PHP, it
+is clearer with four sentences and a signature — write those instead.
+
+Artisan generators are a grey area with an easy rule: **tell me the command, let
+me run it.** `php artisan make:model Ingredient -mf` is something I should know by
+heart, and watching you run it teaches me nothing.
+
+### Asking for code anyway
+
+I will say so explicitly — "write it", "code this one", "just show me the file".
+That opt-in covers **that one request and nothing else**, and lapses the moment
+it is done; the next question goes back to explanation without being told. Do not
+infer permission from frustration, from a long back-and-forth, or from my having
+asked you to write something an hour ago.
+
+When I do opt in, every normal rule in this file applies in full — § *Project
+hard rules*, Pint, PHPStan level 7, a Feature test asserting the JSON shape,
+`composer ci:check`. Learning mode does not lower the bar; it moves who clears it.
+
+### Still expected of you
+
+Learning mode removes implementation, not involvement:
+
+- **Review what I wrote.** This is the highest-value thing you can do here. Read
+  my code against § *Project hard rules* and the skills, and say what is wrong
+  and why — a query inside the interpreter, interpretation leaking into a
+  controller, a hardcoded ingredient list, an N+1 in a Resource, a missing
+  `auth:sanctum`, a measure stored in oz, a test that asserts a status code and
+  not the payload. Point at the defect; let me fix it. If I am stuck twice on the
+  same thing, narrow the hint, don't hand over the answer.
+- **Run things and read real output.** `composer ci:check`, a scoped
+  `php artisan test --compact --filter=…`, `vendor/bin/pint --test`, PHPStan,
+  `php artisan route:list`, `tinker`, `git diff`, reading any file. Teaching from
+  an actual PHPStan error or a real failing expectation beats teaching from a
+  guessed one — and reading a stack trace is itself the skill being practised, so
+  walk me through how you located the cause.
+- **Ask before you answer.** "Where do you think the normalisation belongs?"
+  Retrieval practice is worth more than a clean explanation I merely nodded at.
+  Then correct the answer I give.
+- **Quiz me.** Interview-shaped follow-ups on what we just built: why is the
+  interpreter pure? What does `fortify.views => false` actually delete? Why does
+  `Auth::logout()` break under `auth:sanctum`? Why is "parts" not a volume? What
+  does `migrate:fresh` cost me right now?
+- **Write prose.** Markdown is not code: design notes, plans, schema
+  comparisons, ADR-style write-ups and this file are yours to write to disk
+  freely. The one exception is `AGENTS.md`, which is generated — § *Project hard
+  rules* 4 still stands.
+
+### Where this does not apply
+
+Config and ceremony are not the exercise and should not be made artificially
+hard — `.env` values, a composer script, `compose.yaml`, a CI workflow,
+`config/cors.php` wiring, a `phpstan.neon` path. Explaining still beats doing,
+but if I ask you to fix a Pint config, fix it. The exercise is **the domain and
+the architecture**: the schema, the intake boundary, the interpreter, the tiers
+and ranking, the service/controller/Resource split, and the tests that pin them.
+
+---
+
 ## Read first, and in this order
 
 1. **`AGENTS.md`** — generated by Laravel Boost (see `boost.json`). It carries
@@ -68,6 +206,14 @@ On a conflict: `AGENTS.md` wins on framework mechanics, this file wins on domain
 and process, and the web repo's `CLAUDE.md` wins on front-end architecture. If a
 skill contradicts any of them, this file wins — say so rather than quietly
 following the skill.
+
+§ *Learning mode* outranks every other section here, and `AGENTS.md`, on **how
+work is done**. The rest of this file is written in the imperative — "migration +
+model + factory via artisan", "write the test for the ranking first" — because it
+was written for someone implementing. Read those as **what I should do and you
+should explain**, never as your licence to do them. `AGENTS.md` is generated by
+Boost and knows nothing about this section, so where it tells you to go ahead and
+scaffold, this file wins.
 
 ---
 
@@ -360,10 +506,12 @@ prevent.
 ## Skills
 
 The skills from the harness have been copied to `.claude/skills/`. Only the PHP
-and cross-cutting set applies here now; the front-end skills were copied into
-`cocktail-bar-web` and gate the work there. With `resources/js/` deleted they
-bind to nothing in this repo and are safe to remove from `.claude/skills/`
-whenever someone wants the clean-up.
+and cross-cutting set lives here: **`react-frontend`, `vercel-react-best-practices`
+and `zod` were deleted on 2026-11-14.** There is no TypeScript in this repo for
+them to bind to, and the copies in `cocktail-bar-web` have since been rewritten
+for that app's actual stack — so keeping a second, diverging set here would have
+been worse than having none. If you need a front-end rule, read it in the web
+repo, which is where it is true.
 
 | Skill | Applies here? |
 |---|---|
@@ -371,11 +519,21 @@ whenever someone wants the clean-up.
 | `testing-anti-patterns` | **Yes**, whenever tests are in scope. |
 | `clean-code` · `security-review` | **Yes** — `security-review` for anything touching auth, Fortify, policies or user input. |
 | `laravel-backend` | **Conventions yes, architecture with care.** Its Pint/PHPStan/migration/test rules all apply. But its Controller → UseCase → Repository layering, `app/Domains/` tree and Spatie Laravel-Data DTOs are a *heavier* architecture than this app has. Adopt it wholesale or not at all — a half-applied layering is worse than either. Note it assumes **PHPStan level 8**; this project is at **level 7**. It also assumes Sail; this project now uses Sail for Postgres and Redis (`compose.yaml`), so that guidance applies — but host PHP 8.3 is installed as well, and the Pest suite runs on the host against SQLite. |
-| `react-frontend` · `vercel-react-best-practices` · `zod` | **No — the other repo's.** `cocktail-bar-web` has its own copies and its own notes on which of their rule files apply there. There is no JavaScript or TypeScript in this repo for them to bind to. |
+| `react-frontend` · `vercel-react-best-practices` · `zod` | **Gone — they were the other repo's.** Deleted from `.claude/skills/` on 2026-11-14. `cocktail-bar-web` holds the only copies, rewritten for a Vite React SPA. When a change to this API's JSON affects the client, the rule you want (its schemas, adapters and layering) is over there. |
 | `ddd-strategic-design` · `ddd-clean-architecture` · `nodejs-ddd-backend` | **Reference only.** Generic (and Java/Node-flavoured) material. `ddd-strategic-design` is useful vocabulary when carving up ingredients/recipes/stock; neither should dictate the folder layout of a Laravel app. |
 
 There is no gate script enforcing any of this — it is discipline, not machinery.
 Say in the commit or PR which skills gated the work.
+
+In learning mode these skills are also the **reading list**. When one of them
+decides an answer, cite the rule file by path so I can go and read it — and where
+a skill's reasoning applies but its specifics do not (`laravel-backend`'s
+`app/Domains/` tree and Spatie Data DTOs, the Java/Node flavour of the DDD
+skills), say which half you are using and why the other half is wrong *here*.
+Telling the two apart is itself an interview skill: it is the difference between
+knowing a convention and knowing why it exists. `ddd-strategic-design` earns its
+place as vocabulary for carving up ingredients, recipes and stock, even though it
+must not dictate the folder layout.
 
 ---
 
@@ -424,8 +582,10 @@ ranking decision in the interpreter.
 - **Surface assumptions.** The domain here is full of judgement calls (is a
   garnish required? is bourbon an acceptable rye?). State the call you made;
   do not bury it in a condition.
-- **Verified means verified.** A feature is done when its tests pass and you have
-  seen them pass. "Should work" is not done.
+- **Verified means verified.** A feature is done when its tests pass and someone
+  has watched them pass. In learning mode that someone is normally me; you may
+  run the suite to diagnose. Either way, say what was run and what it said.
+  "Should work" is not done — and "I explained it correctly" is not done either.
 
 ### Project hard rules
 
@@ -442,7 +602,14 @@ ranking decision in the interpreter.
 
 ---
 
-## Adding a feature: checklist
+## Adding a feature: checklist — and the order to learn it in
+
+In learning mode this doubles as the curriculum. Walk me through it **one step at
+a time**: explain the step, wait while I write it, review what I wrote, then move
+on. Do not explain all seven at once — a wall of guidance is as easy to nod along
+to as a finished diff, and the whole point is that each step costs me something.
+Step 3 is the one worth slowing down on; it is also the one an interviewer will
+ask about.
 
 1. Read `AGENTS.md`, this file, and the skills that apply (§ *Skills*).
 2. Migration + model + factory via artisan (`php artisan make:model … --help`
