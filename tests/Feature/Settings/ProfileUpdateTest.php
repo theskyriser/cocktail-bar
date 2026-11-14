@@ -2,29 +2,15 @@
 
 use App\Models\User;
 
-test('profile page is displayed', function () {
-    $user = User::factory()->create();
-
-    $response = $this
-        ->actingAs($user)
-        ->get(route('profile.edit'));
-
-    $response->assertOk();
-});
-
 test('profile information can be updated', function () {
     $user = User::factory()->create();
 
-    $response = $this
-        ->actingAs($user)
-        ->patch(route('profile.update'), [
+    $this->actingAs($user)
+        ->patchJson(route('profile.update'), [
             'name' => 'Test User',
             'email' => 'test@example.com',
-        ]);
-
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        ])
+        ->assertNoContent();
 
     $user->refresh();
 
@@ -36,22 +22,21 @@ test('profile information can be updated', function () {
 test('email is stored in lowercase so the user can still log in', function () {
     $user = User::factory()->create();
 
-    $this
-        ->actingAs($user)
-        ->patch(route('profile.update'), [
+    $this->actingAs($user)
+        ->patchJson(route('profile.update'), [
             'name' => 'Test User',
             'email' => 'Test@Example.com',
         ])
-        ->assertSessionHasNoErrors();
+        ->assertNoContent();
 
     expect($user->refresh()->email)->toBe('test@example.com');
 
-    $this->post(route('logout'));
+    $this->postJson(route('logout'))->assertNoContent();
 
-    $this->post(route('login.store'), [
+    $this->postJson(route('login.store'), [
         'email' => 'Test@Example.com',
         'password' => 'password',
-    ]);
+    ])->assertOk();
 
     $this->assertAuthenticatedAs($user);
 });
@@ -61,32 +46,24 @@ test('email must be unique regardless of case', function () {
 
     $user = User::factory()->create();
 
-    $response = $this
-        ->actingAs($user)
-        ->from(route('profile.edit'))
-        ->patch(route('profile.update'), [
+    $this->actingAs($user)
+        ->patchJson(route('profile.update'), [
             'name' => 'Test User',
             'email' => 'Taken@Example.com',
-        ]);
-
-    $response
-        ->assertSessionHasErrors('email')
-        ->assertRedirect(route('profile.edit'));
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('email');
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {
     $user = User::factory()->create();
 
-    $response = $this
-        ->actingAs($user)
-        ->patch(route('profile.update'), [
+    $this->actingAs($user)
+        ->patchJson(route('profile.update'), [
             'name' => 'Test User',
             'email' => $user->email,
-        ]);
-
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        ])
+        ->assertNoContent();
 
     expect($user->refresh()->email_verified_at)->not->toBeNull();
 });
@@ -94,33 +71,42 @@ test('email verification status is unchanged when the email address is unchanged
 test('user can delete their account', function () {
     $user = User::factory()->create();
 
-    $response = $this
-        ->actingAs($user)
-        ->delete(route('profile.destroy'), [
-            'password' => 'password',
-        ]);
+    $this->postJson(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'password',
+    ])->assertOk();
 
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('home'));
+    $this->deleteJson(route('profile.destroy'), ['password' => 'password'])
+        ->assertNoContent();
 
-    $this->assertGuest();
     expect($user->fresh())->toBeNull();
+
+    $this->assertGuest(config('fortify.guard'));
+
+    /*
+     * One container is reused across requests here, so the guard that already
+     * resolved this user would answer from memory. Drop it to see what a
+     * genuinely new request sees.
+     */
+    app('auth')->forgetGuards();
+
+    $this->getJson(route('user'))->assertUnauthorized();
 });
 
 test('correct password must be provided to delete account', function () {
     $user = User::factory()->create();
 
-    $response = $this
-        ->actingAs($user)
-        ->from(route('profile.edit'))
-        ->delete(route('profile.destroy'), [
-            'password' => 'wrong-password',
-        ]);
-
-    $response
-        ->assertSessionHasErrors('password')
-        ->assertRedirect(route('profile.edit'));
+    $this->actingAs($user)
+        ->deleteJson(route('profile.destroy'), ['password' => 'wrong-password'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('password');
 
     expect($user->fresh())->not->toBeNull();
+});
+
+test('guests cannot update a profile', function () {
+    $this->patchJson(route('profile.update'), [
+        'name' => 'Test User',
+        'email' => 'test@example.com',
+    ])->assertUnauthorized();
 });

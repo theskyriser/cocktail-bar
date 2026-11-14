@@ -3,31 +3,28 @@
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
 
-test('login screen can be rendered', function () {
-    $response = $this->get(route('login'));
-
-    $response->assertOk();
-});
-
-test('users can authenticate using the login screen', function () {
+test('users can authenticate', function () {
     $user = User::factory()->create();
 
-    $response = $this->post(route('login.store'), [
+    $this->postJson(route('login.store'), [
         'email' => $user->email,
         'password' => 'password',
-    ]);
+    ])
+        ->assertOk()
+        ->assertExactJson(['two_factor' => false]);
 
-    $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $this->assertAuthenticatedAs($user);
 });
 
 test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();
 
-    $this->post(route('login.store'), [
+    $this->postJson(route('login.store'), [
         'email' => $user->email,
         'password' => 'wrong-password',
-    ]);
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('email');
 
     $this->assertGuest();
 });
@@ -35,9 +32,9 @@ test('users can not authenticate with invalid password', function () {
 test('users can logout', function () {
     $user = User::factory()->create();
 
-    $response = $this->actingAs($user)->post(route('logout'));
-
-    $response->assertRedirect(route('home'));
+    $this->actingAs($user)
+        ->postJson(route('logout'))
+        ->assertNoContent();
 
     $this->assertGuest();
 });
@@ -47,10 +44,8 @@ test('users are rate limited', function () {
 
     RateLimiter::increment(md5('login'.implode('|', [$user->email, '127.0.0.1'])), amount: 5);
 
-    $response = $this->post(route('login.store'), [
+    $this->postJson(route('login.store'), [
         'email' => $user->email,
         'password' => 'wrong-password',
-    ]);
-
-    $response->assertTooManyRequests();
+    ])->assertTooManyRequests();
 });
